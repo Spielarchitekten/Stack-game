@@ -30,6 +30,7 @@ export default class gameScene extends Phaser.Scene {
         this.startOverlay = null;
         this.startButton = null;
         this.startLabel = null;
+        this.spaceKeyDown = false;
     }
 
     preload() {
@@ -40,13 +41,21 @@ export default class gameScene extends Phaser.Scene {
         this.gameStarted = false;
 
         this.add.image(centerX, centerY, "gameBG").setDisplaySize(width, height);
-        this.scoreText = this.add.text(40, 40, "Score: 0", {
+        this.scoreText = this.add.text(40, 40, "Punkte: 0", {
             fontSize: "36px",
             color: "#ffffff",
         }).setDepth(10).setVisible(false);
 
         this.input.on("pointerdown", this.stopMovingBlock, this);
-        this.input.keyboard.on("keydown-SPACE", this.stopMovingBlock, this);
+        this.input.keyboard.on("keydown-SPACE", () => {
+            if (!this.spaceKeyDown) {
+                this.spaceKeyDown = true;
+                this.stopMovingBlock();
+            }
+        });
+        this.input.keyboard.on("keyup-SPACE", () => {
+            this.spaceKeyDown = false;
+        });
 
         this.createStartButton();
     }
@@ -106,7 +115,7 @@ export default class gameScene extends Phaser.Scene {
             .setDepth(21)
             .setInteractive({ useHandCursor: true });
 
-        this.startLabel = this.add.text(centerX, centerY, "START", {
+        this.startLabel = this.add.text(centerX, centerY, "STARTEN", {
             fontSize: "36px",
             color: "#ffffff",
             fontStyle: "bold",
@@ -211,7 +220,7 @@ export default class gameScene extends Phaser.Scene {
         const gained = Math.round(tierPoints * difficultyBonus);
 
         this.score += gained;
-        this.scoreText.setText("Score: " + this.score);
+        this.scoreText.setText("Punkte: " + this.score);
     }
 
     getOverlapData(baseBlock, movingBlock) {
@@ -277,12 +286,12 @@ export default class gameScene extends Phaser.Scene {
             this.movingBlock = null;
         }
 
-        this.add.text(centerX, 120, "Game Over", {
+        this.add.text(centerX, 120, "Spiel vorbei", {
             fontSize: "48px",
             color: "#ffffff",
         }).setOrigin(0.5).setDepth(10);
 
-        this.add.text(centerX, 185, "Final Score: " + this.score, {
+        this.add.text(centerX, 185, "Endpunktzahl: " + this.score, {
             fontSize: "34px",
             color: "#ffdd57",
         }).setOrigin(0.5).setDepth(10);
