@@ -104,6 +104,8 @@ export default class gameScene extends Phaser.Scene {
         this.stackBlocks.push(placeBlock);
         this.placedBlocks += 1;
 
+        this.createGlitterEffect(placeBlock);
+
         if (this.placedBlocks >= this.speedUpAt) {
             this.baseSpeed = Math.min(this.baseSpeed + this.speedStep, this.maxSpeed);
             this.speedUpAt += this.speedUpEvery;
@@ -266,6 +268,34 @@ export default class gameScene extends Phaser.Scene {
             cutCenterX,
             y: movingBlock.y,
         };
+    }
+
+    createGlitterEffect(block) {
+        const glitterCount = 8;
+        for (let i = 0; i < glitterCount; i++) {
+            const angle = (Math.PI * 2 / glitterCount) * i;
+            const vx = Math.cos(angle) * 200;
+            const vy = Math.sin(angle) * 200;
+
+            const glitter = this.add.rectangle(
+                block.x,
+                block.y,
+                6,
+                6,
+                0xFFD700,
+                0.8
+            ).setDepth(5);
+
+            this.tweens.add({
+                targets: glitter,
+                x: glitter.x + vx,
+                y: glitter.y + vy,
+                alpha: 0,
+                duration: 600,
+                ease: "Quad.easeOut",
+                onComplete: () => glitter.destroy()
+            });
+        }
     }
 
     getBlockLeft(block) {
