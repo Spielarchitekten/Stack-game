@@ -18,11 +18,12 @@ export default class gameScene extends Phaser.Scene {
         this.isBlockMoving = false;
         this.stackBlocks = [];
         this.blockSpacing = 0;
+        this.blockSpacingFactor = 0.65;
         this.baseBlockWidth = 300;
-        this.blockHeight = 60;
-        this.blockColor = 0xDB7093;
-        this.blockBorderColor = 0x3a2230;
-        this.blockBorderWidth = 3;
+        this.blockHeight = 120;
+        // this.blockColor = 0xDB7093;
+        // this.blockBorderColor = 0x3a2230;
+        // this.blockBorderWidth = 3;
         this.movementMargin = 250;
         this.score = 0;
         this.scoreText = null;
@@ -31,16 +32,24 @@ export default class gameScene extends Phaser.Scene {
         this.startButton = null;
         this.startLabel = null;
         this.spaceKeyDown = false;
+        this.blockTextureKeys = ["block1", "block2", "block3", "block4", "block5"];
+        this.nextBlockTextureIndex = 0;
     }
 
     preload() {
-        this.load.image("gameBG", "assets/gameBG.jpg");
+        //this.load.image("gameBG", "assets/gameBG.jpg");
+        this.load.image("block1", "assets/block1.png");
+        this.load.image("block2", "assets/block2.png");
+        this.load.image("block3", "assets/block3.png");
+        this.load.image("block4", "assets/block4.png");
+        this.load.image("block5", "assets/block5.png");
     }
 
     create() {
         this.gameStarted = false;
 
-        this.add.image(centerX, centerY, "gameBG").setDisplaySize(width, height);
+        //this.add.image(centerX, centerY, "gameBG").setDisplaySize(width, height);
+        this.add.rectangle(centerX, centerY, width, height, 0x064C58);
         this.scoreText = this.add.text(40, 40, "Punkte: 0", {
             fontSize: "36px",
             color: "#ffffff",
@@ -79,7 +88,7 @@ export default class gameScene extends Phaser.Scene {
         }
 
         if (overlapData.cutWidth > 0) {
-            this.createFallingPiece(overlapData);
+            this.createFallingPiece(overlapData, this.movingBlock.texture.key);
         }
 
         this.addPointsForHit(topBlock, overlapData);
@@ -87,7 +96,8 @@ export default class gameScene extends Phaser.Scene {
         const placeBlock = this.createBlock(
             overlapData.overlapCenterX,
             this.movingBlock.y,
-            overlapData.overlapWidth
+            overlapData.overlapWidth,
+            this.movingBlock.texture.key
         );
 
         this.movingBlock.destroy();
@@ -110,8 +120,8 @@ export default class gameScene extends Phaser.Scene {
         this.startOverlay = this.add.rectangle(centerX, centerY, width, height, 0x000000, 0.35)
             .setDepth(20);
 
-        this.startButton = this.add.rectangle(centerX, centerY, 260, 90, 0x2ecc71)
-            .setStrokeStyle(3, 0x1f7f48, 1)
+        this.startButton = this.add.rectangle(centerX, centerY, 260, 90, 0xD7AF48)
+            .setStrokeStyle(3, 0x9f7e28, 1)
             .setDepth(21)
             .setInteractive({ useHandCursor: true });
 
@@ -122,11 +132,11 @@ export default class gameScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(22);
 
         this.startButton.on("pointerover", () => {
-            this.startButton.setFillStyle(0x34d47b);
+            this.startButton.setFillStyle(0xe5c36a);
         });
 
         this.startButton.on("pointerout", () => {
-            this.startButton.setFillStyle(0x2ecc71);
+            this.startButton.setFillStyle(0xD7AF48);
         });
 
         this.startButton.on("pointerup", () => {
@@ -138,7 +148,7 @@ export default class gameScene extends Phaser.Scene {
         this.gameStarted = true;
         this.isBlockMoving = true;
         this.blockSpeed = this.baseSpeed;
-        this.blockSpacing = this.blockHeight;
+        this.blockSpacing = this.blockHeight * this.blockSpacingFactor;
 
         if (this.stackBlocks.length === 0) {
             const baseBlock = this.createBlock(centerX, height - 100, this.baseBlockWidth);
@@ -167,16 +177,22 @@ export default class gameScene extends Phaser.Scene {
         }
     }
 
-    createBlock(x, y, blockWidth) {
-        return this.add.rectangle(x, y, blockWidth, this.blockHeight, this.blockColor)
-            .setOrigin(0.5, 0.5)
-            .setStrokeStyle(this.blockBorderWidth, this.blockBorderColor, 1);
+    getNextBlockTextureKey() {
+        const textureKey = this.blockTextureKeys[this.nextBlockTextureIndex];
+        this.nextBlockTextureIndex = (this.nextBlockTextureIndex + 1) % this.blockTextureKeys.length;
+        return textureKey;
+    }
+
+    createBlock(x, y, blockWidth, textureKey = null) {
+        return this.add.image(x, y, textureKey || this.getNextBlockTextureKey())
+            .setDisplaySize(blockWidth, this.blockHeight)
+            .setOrigin(0.5, 0.5);
     }
 
     spawnMovingBlock() {
         const topBlock = this.stackBlocks[this.stackBlocks.length - 1];
 
-        this.movingBlock = this.createBlock(centerX, topBlock.y - this.blockSpacing, topBlock.width);
+        this.movingBlock = this.createBlock(centerX, topBlock.y - this.blockSpacing, topBlock.displayWidth);
     }
 
     scrollStack() {
@@ -260,11 +276,12 @@ export default class gameScene extends Phaser.Scene {
         return block.x + (block.displayWidth / 2);
     }
 
-    createFallingPiece(overlapData) {
+    createFallingPiece(overlapData, textureKey) {
         const cutPiece = this.createBlock(
             overlapData.cutCenterX,
             overlapData.y,
             overlapData.cutWidth,
+            textureKey
         );
 
         this.tweens.add({
