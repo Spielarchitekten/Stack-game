@@ -36,6 +36,13 @@ export default class gameScene extends Phaser.Scene {
         this.spaceKeyDown = false;
         this.blockTextureKeys = ["block1", "block2", "block3", "block4", "block5"];
         this.nextBlockTextureIndex = 0;
+        this.isTutorialMode = false;
+        this.tutorialStepIndex = 0;
+        this.tutorialText = null;
+        this.tutorialPanel = null;
+        this.tutorialHighlight = null;
+        this.tutorialHighlightTween = null;
+        this.tutorialSteps = [];
     }
 
     preload() {
@@ -108,6 +115,7 @@ export default class gameScene extends Phaser.Scene {
         this.placedBlocks += 1;
 
         this.createGlitterEffect(placeBlock);
+        this.advanceTutorialOnPlacement();
 
         if (this.placedBlocks >= this.speedUpAt) {
             this.baseSpeed = Math.min(this.baseSpeed + this.speedStep, this.maxSpeed);
@@ -172,12 +180,19 @@ export default class gameScene extends Phaser.Scene {
             this.tutorialButton.setFillStyle(0xD7AF48);
         });
 
-        /* this.tutorialButton.on("pointerup", () => {
-            this.showTutorial();
-        }); */
+        this.tutorialButton.on("pointerup", () => {
+            this.startGame(true);
+        });
     }
 
-    startGame() {
+    startGame(startWithTutorial = false) {
+        this.isTutorialMode = startWithTutorial;
+        this.tutorialStepIndex = 0;
+        this.tutorialSteps = [
+            "📦  Step 1 of 3  —  Click or press SPACE to drop the block.\nTry to land it as centered as possible!",
+            "✂️  Step 2 of 3  —  Any part that doesn't overlap gets cut off.\nThe more aligned, the wider your next block!",
+            "⚡  Step 3 of 3  —  Every 5 blocks the speed increases.\nStay focused — good luck!"
+        ]
         this.gameStarted = true;
         this.isBlockMoving = true;
         this.blockSpeed = this.baseSpeed;
@@ -218,6 +233,11 @@ export default class gameScene extends Phaser.Scene {
             this.tutorialLabel.destroy();
             this.tutorialLabel = null;
         }
+
+        if (this.isTutorialMode) {
+            this.createTutorialUI();
+            this.setTutorialMessage(this.tutorialSteps[this.tutorialStepIndex]);
+        }
     }
 
     getNextBlockTextureKey() {
@@ -236,6 +256,10 @@ export default class gameScene extends Phaser.Scene {
         const topBlock = this.stackBlocks[this.stackBlocks.length - 1];
 
         this.movingBlock = this.createBlock(centerX, topBlock.y - this.blockSpacing, topBlock.displayWidth);
+
+        if (this.isTutorialMode) {
+            this.updateTutorialHighlight();
+        }
     }
 
     scrollStack() {
@@ -365,7 +389,101 @@ export default class gameScene extends Phaser.Scene {
         });
     }
 
+    createTutorialUI() {
+        this.clearTutorialUI();
+
+        this.tutorialPanel = this.add.rectangle(centerX, 150, width - 120, 120, 0x000000, 0.55)
+            .setStrokeStyle(2, 0xFFD700, 1)
+            .setDepth(30);
+
+        this.tutorialText = this.add.text(centerX, 150, "", {
+            fontSize: "26px",
+            color: "#ffffff",
+            align: "center",
+            lineSpacing: 8,
+            wordWrap: { width: width - 200 },
+        }).setOrigin(0.5).setDepth(31);
+     }
+
+     setTutorialMessage(message) {
+        if (!this.tutorialText) return;
+        this.tutorialText.setText(message);
+     }
+
+     clearTutorialUI() {
+        if (this.tutorialHighLightTween) {
+            this.tutorialHighLightTween.stop();
+            this.tutorialHighLightTween = null;
+        }
+
+        if (this.tutorialHighlight) {
+            this.tutorialHighlight.destroy();
+            this.tutorialHighlight = null;
+        }
+
+        if (this.tutorialPanel) {
+            this.tutorialPanel.destroy();
+            this.tutorialPanel = null;
+        }
+
+        if (this.tutorialText) {
+            this.tutorialText.destroy();
+            this.tutorialText = null;
+        }
+     }
+
+     updateTutorialHighlight() {
+        if (!this.isTutorialMode || !this.movingBlock) return;
+
+        if (!this.tutorialHighlight) {
+            this.tutorialHighlight = this.add.rectangle(
+                this.movingBlock.x,
+                this.movingBlock.y,
+                this.movingBlock.displayWidth + 6,
+                this.blockHeight - 40
+            )
+                .setFillStyle(0x000000, 0)
+                .setStrokeStyle(4, 0xFFD700, 1)
+                .setDepth(12);
+
+            this.tutorialHighLightTween = this.tweens.add({
+                targets: this.tutorialHighlight,
+                alpha: 0.35,
+                duration: 1000,
+                ease: "Sine.easeInOut",
+                yoyo: true,
+                repeat: -1,
+            });
+        }
+
+        this.tutorialHighlight
+            .setPosition(this.movingBlock.x, this.movingBlock.y)
+            .setSize(this.movingBlock.displayWidth + 6, this.blockHeight - 40)
+            .setDisplaySize(this.movingBlock.displayWidth + 6, this.blockHeight - 40)
+            .setVisible(true);
+     }
+
+     advanceTutorialOnPlacement() {
+        if (!this.isTutorialMode) return;
+
+        if (this.placedBlocks >= 1 && this.tutorialStepIndex === 0) {
+            this.tutorialStepIndex = 1;
+            this.setTutorialMessage(this.tutorialSteps[this.tutorialStepIndex]);
+        }
+
+        if (this.placedBlocks >= 3 && this.tutorialStepIndex < 2) {
+            this.tutorialStepIndex = 2;
+            this.setTutorialMessage(this.tutorialSteps[this.tutorialStepIndex]);
+
+            this.time.delayedCall(2200, () => {
+                this.isTutorialMode =false;
+                this.clearTutorialUI();
+            });
+        }
+     }
+
     gameOver() {
+        this.clearTutorialUI();
         this.gameStarted = false;
         this.isBlockMoving = false;
 
@@ -420,6 +538,10 @@ export default class gameScene extends Phaser.Scene {
             this.blockSpeed = -this.baseSpeed;
         } else if (this.movingBlock.x < minX) {
             this.blockSpeed = this.baseSpeed;
+        }
+
+        if (this.isTutorialMode && this.tutorialHighlight) {
+            this.tutorialHighlight.setPosition(this.movingBlock.x, this.movingBlock.y);
         }
     }
 }
