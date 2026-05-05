@@ -31,6 +31,8 @@ export default class gameScene extends Phaser.Scene {
         this.startOverlay = null;
         this.startButton = null;
         this.startLabel = null;
+        this.tutorialButton = null;
+        this.tutorialLabel = null;
         this.spaceKeyDown = false;
         this.blockTextureKeys = ["block1", "block2", "block3", "block4", "block5"];
         this.nextBlockTextureIndex = 0;
@@ -67,6 +69,7 @@ export default class gameScene extends Phaser.Scene {
         });
 
         this.createStartButton();
+        this.createTutorialButton();
     }
 
     stopMovingBlock() {
@@ -146,6 +149,34 @@ export default class gameScene extends Phaser.Scene {
         });
     }
 
+    createTutorialButton() {
+        const offsetY = 120;
+        const tutorialY = this.startButton.y + offsetY;     
+
+        this.tutorialButton = this.add.rectangle(centerX, tutorialY, 260, 80, 0xD7AF48)
+            .setStrokeStyle(3, 0x9f7e28, 1)
+            .setDepth(21)
+            .setInteractive({ useHandCursor: true });
+
+        this.tutorialLabel = this.add.text(centerX, tutorialY, "TUTORIAL", {
+            fontSize: "32px",
+            color: "#ffffff",
+            fontStyle: "bold",
+        }).setOrigin(0.5).setDepth(22);
+
+        this.tutorialButton.on("pointerover", () => {
+            this.tutorialButton.setFillStyle(0xe5c36a);
+        });
+
+        this.tutorialButton.on("pointerout", () => {
+            this.tutorialButton.setFillStyle(0xD7AF48);
+        });
+
+        this.tutorialButton.on("pointerup", () => {
+            this.showTutorial();
+        });
+    }
+
     startGame() {
         this.gameStarted = true;
         this.isBlockMoving = true;
@@ -176,6 +207,16 @@ export default class gameScene extends Phaser.Scene {
         if (this.startLabel) {
             this.startLabel.destroy();
             this.startLabel = null;
+        }
+
+        if (this.tutorialButton) {
+            this.tutorialButton.destroy();
+            this.tutorialButton = null;
+        }
+
+        if (this.tutorialLabel) {
+            this.tutorialLabel.destroy();
+            this.tutorialLabel = null;
         }
     }
 
