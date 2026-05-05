@@ -9,7 +9,7 @@ export default class gameScene extends Phaser.Scene {
         this.gameStarted = false;
 
         this.baseSpeed = 150;
-        this.speedStep = 50;
+        this.speedStep = 30;
         this.maxSpeed = 600;
         this.blockSpeed = this.baseSpeed;
         this.placedBlocks = 0;
@@ -172,9 +172,9 @@ export default class gameScene extends Phaser.Scene {
             this.tutorialButton.setFillStyle(0xD7AF48);
         });
 
-        this.tutorialButton.on("pointerup", () => {
+        /* this.tutorialButton.on("pointerup", () => {
             this.showTutorial();
-        });
+        }); */
     }
 
     startGame() {
@@ -374,15 +374,35 @@ export default class gameScene extends Phaser.Scene {
             this.movingBlock = null;
         }
 
-        this.add.text(centerX, 120, "Spiel vorbei", {
+        this.add.rectangle(centerX, centerY, width, height, 0x000000, 0.5).setDepth(9);
+
+        this.add.text(centerX, centerY - 120, "Spiel vorbei", {
+            fontFamily: "Cinzel Decorative",
             fontSize: "48px",
             color: "#ffffff",
         }).setOrigin(0.5).setDepth(10);
 
-        this.add.text(centerX, 185, "Endpunktzahl: " + this.score, {
+        this.add.text(centerX, centerY - 40, "Endpunktzahl: " + this.score, {
+            fontFamily: "Cinzel Decorative",
             fontSize: "34px",
             color: "#ffdd57",
         }).setOrigin(0.5).setDepth(10);
+
+        const retryButton = this.add.rectangle(centerX, centerY + 70, 260, 80, 0xD7AF48)
+            .setStrokeStyle(3, 0x9f7e28, 1)
+            .setDepth(10)
+            .setInteractive({ useHandCursor: true });
+
+        this.add.text(centerX, centerY + 70, "NOCHMAL", {
+            fontFamily: "Cinzel Decorative",
+            fontSize: "28px",
+            color: "#ffffff",
+            fontStyle: "bold",
+        }).setOrigin(0.5).setDepth(11);
+
+        retryButton.on("pointerover", () => retryButton.setFillStyle(0xe5c36a));
+        retryButton.on("pointerout", () => retryButton.setFillStyle(0xD7AF48));
+        retryButton.on("pointerup", () => this.scene.restart());
     }
 
     update(time, delta) {
