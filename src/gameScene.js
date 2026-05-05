@@ -8,7 +8,7 @@ export default class gameScene extends Phaser.Scene {
     init() {
         this.gameStarted = false;
 
-        this.baseSpeed = 250;
+        this.baseSpeed = 150;
         this.speedStep = 50;
         this.maxSpeed = 600;
         this.blockSpeed = this.baseSpeed;
