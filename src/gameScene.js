@@ -43,6 +43,8 @@ export default class gameScene extends Phaser.Scene {
         this.tutorialHighlight = null;
         this.tutorialHighlightTween = null;
         this.tutorialSteps = [];
+        this.scrollTween = null;
+        this.isScrolling = false;
     }
 
     preload() {
@@ -103,9 +105,10 @@ export default class gameScene extends Phaser.Scene {
 
         this.addPointsForHit(topBlock, overlapData);
 
+        const targetY = topBlock.y - this.blockSpacing;
         const placeBlock = this.createBlock(
             overlapData.overlapCenterX,
-            this.movingBlock.y,
+            targetY,
             overlapData.overlapWidth,
             this.movingBlock.texture.key
         );
@@ -123,10 +126,20 @@ export default class gameScene extends Phaser.Scene {
         }
 
         this.spawnMovingBlock();
-        this.scrollStack();
 
-        this.blockSpeed = this.baseSpeed * moveDirection;
-        this.isBlockMoving = true;
+        const resumeMovement = () => {
+            this.snapStackToGrid();
+            this.ensureMovingBlockVisible();
+            this.blockSpeed = this.baseSpeed * moveDirection;
+            this.isBlockMoving = true;
+        };
+
+        const scrollTween = this.scrollStack();
+        if (scrollTween) {
+            this.time.delayedCall(160, resumeMovement);
+        } else {
+            resumeMovement();
+        }
     }
 
     createStartButton() {
@@ -266,17 +279,69 @@ export default class gameScene extends Phaser.Scene {
         const topBlock = this.stackBlocks[this.stackBlocks.length - 1];
 
         if (topBlock.y > height * 0.5) {
-            return;
+            return null;
+        }
+
+        if (this.scrollTween && this.scrollTween.isPlaying()) {
+            this.scrollTween.stop();
+            this.scrollTween = null;
         }
 
         const targets = [...this.stackBlocks, this.movingBlock];
 
-        this.tweens.add({
+        this.isScrolling = true;
+        this.scrollTween = this.tweens.add({
             targets,
             y: "+=" + this.blockSpacing,
             duration: 150,
             ease: "Linear",
+            onComplete: () => {
+                this.isScrolling = false;
+                this.scrollTween = null;
+            },
         });
+
+        return this.scrollTween;
+    }
+
+    snapStackToGrid() {
+        if (this.stackBlocks.length === 0) {
+            return;
+        }
+
+        const baseY = Math.round(this.stackBlocks[0].y);
+
+        for (let i = 0; i < this.stackBlocks.length; i++) {
+            this.stackBlocks[i].y = Math.round(baseY - (i * this.blockSpacing));
+        }
+
+        if (this.movingBlock) {
+            const topBlock = this.stackBlocks[this.stackBlocks.length - 1];
+            this.movingBlock.y = Math.round(topBlock.y - this.blockSpacing);
+        }
+    }
+
+    ensureMovingBlockVisible() {
+        if (!this.movingBlock) {
+            return;
+        }
+
+        const targetY = height * 0.35;
+        if (this.movingBlock.y >= targetY) {
+            return;
+        }
+
+        const shift = targetY - this.movingBlock.y;
+
+        for (const block of this.stackBlocks) {
+            block.y += shift;
+        }
+
+        this.movingBlock.y += shift;
+
+        if (this.isTutorialMode && this.tutorialHighlight) {
+            this.tutorialHighlight.y += shift;
+        }
     }
 
 
@@ -509,7 +574,7 @@ export default class gameScene extends Phaser.Scene {
         const retryButton = this.add.rectangle(centerX, centerY + 70, 260, 80, 0xD7AF48)
             .setStrokeStyle(3, 0x9f7e28, 1)
             .setDepth(10)
-            .setInteractive({ useHandCursor: true });
+            .disableInteractive();
 
         this.add.text(centerX, centerY + 70, "NOCHMAL", {
             fontFamily: "Cinzel Decorative",
@@ -521,6 +586,10 @@ export default class gameScene extends Phaser.Scene {
         retryButton.on("pointerover", () => retryButton.setFillStyle(0xe5c36a));
         retryButton.on("pointerout", () => retryButton.setFillStyle(0xD7AF48));
         retryButton.on("pointerup", () => this.scene.restart());
+
+        this.time.delayedCall(400, () => {
+            retryButton.setInteractive({ useHandCursor: true });
+        });
     }
 
     update(time, delta) {
@@ -535,10 +604,14 @@ export default class gameScene extends Phaser.Scene {
         const maxX = width - this.movementMargin - halfBlockWidth;
 
         if (this.movingBlock.x > maxX) {
+            this.movingBlock.x = maxX;
             this.blockSpeed = -this.baseSpeed;
         } else if (this.movingBlock.x < minX) {
+            this.movingBlock.x = minX;
             this.blockSpeed = this.baseSpeed;
         }
+
+        this.ensureMovingBlockVisible();
 
         if (this.isTutorialMode && this.tutorialHighlight) {
             this.tutorialHighlight.setPosition(this.movingBlock.x, this.movingBlock.y);
