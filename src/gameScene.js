@@ -18,9 +18,9 @@ export default class gameScene extends Phaser.Scene {
         this.isBlockMoving = false;
         this.stackBlocks = [];
         this.blockSpacing = 0;
-        this.blockSpacingFactor = 0.65;
-        this.baseBlockWidth = 300;
-        this.blockHeight = 120;
+        this.blockSpacingFactor = 1;
+        this.baseBlockWidth = 450;
+        this.blockHeight = 100;
         // this.blockColor = 0xDB7093;
         // this.blockBorderColor = 0x3a2230;
         // this.blockBorderWidth = 3;
@@ -60,10 +60,10 @@ export default class gameScene extends Phaser.Scene {
         this.gameStarted = false;
 
         //this.add.image(centerX, centerY, "gameBG").setDisplaySize(width, height);
-        this.add.rectangle(centerX, centerY, width, height, 0x064C58);
+        this.add.rectangle(centerX, centerY, width, height, 0xEFE3CF);
         this.scoreText = this.add.text(40, 40, "Punkte: 0", {
             fontSize: "36px",
-            color: "#ffffff",
+            color: "#111827",
         }).setDepth(10).setVisible(false);
 
         this.input.on("pointerdown", this.stopMovingBlock, this);
@@ -179,7 +179,7 @@ export default class gameScene extends Phaser.Scene {
             .setDepth(21)
             .setInteractive({ useHandCursor: true });
 
-        this.tutorialLabel = this.add.text(centerX, tutorialY, "TUTORIAL", {
+        this.tutorialLabel = this.add.text(centerX, tutorialY, "ANLEITUNG", {
             fontSize: "32px",
             color: "#ffffff",
             fontStyle: "bold",
@@ -202,9 +202,9 @@ export default class gameScene extends Phaser.Scene {
         this.isTutorialMode = startWithTutorial;
         this.tutorialStepIndex = 0;
         this.tutorialSteps = [
-            "📦  Step 1 of 3  —  Click or press SPACE to drop the block.\nTry to land it as centered as possible!",
-            "✂️  Step 2 of 3  —  Any part that doesn't overlap gets cut off.\nThe more aligned, the wider your next block!",
-            "⚡  Step 3 of 3  —  Every 5 blocks the speed increases.\nStay focused — good luck!"
+            "📦  Schritt 1 von 3  —  Klicke oder druecke die LEERTASTE, um den Block abzusetzen.\nVersuche, ihn so mittig wie moeglich zu platzieren!",
+            "✂️  Schritt 2 von 3  —  Jeder Teil ohne Ueberlappung wird abgeschnitten.\nJe genauer du triffst, desto breiter bleibt dein naechster Block!",
+            "⚡  Schritt 3 von 3  —  Alle 5 Bloecke steigt die Geschwindigkeit.\nBleib konzentriert — viel Glueck!"
         ]
         this.gameStarted = true;
         this.isBlockMoving = true;
@@ -260,15 +260,32 @@ export default class gameScene extends Phaser.Scene {
     }
 
     createBlock(x, y, blockWidth, textureKey = null) {
-        return this.add.image(x, y, textureKey || this.getNextBlockTextureKey())
-            .setDisplaySize(blockWidth, this.blockHeight)
+        const block = this.add.image(x, y, textureKey || this.getNextBlockTextureKey())
             .setOrigin(0.5, 0.5);
+
+        const frameWidth = block.frame.realWidth;
+        const frameHeight = block.frame.realHeight;
+        const scaleX = this.baseBlockWidth / frameWidth;
+        const scaleY = this.blockHeight / frameHeight;
+        const visibleRatio = Phaser.Math.Clamp(blockWidth / this.baseBlockWidth, 0, 1);
+
+        block.setScale(scaleX, scaleY);
+
+        if (visibleRatio < 1) {
+            const cropWidth = frameWidth * visibleRatio;
+            const cropX = (frameWidth - cropWidth) / 2;
+            block.setCrop(cropX, 0, cropWidth, frameHeight);
+        }
+
+        block.logicalWidth = this.baseBlockWidth * visibleRatio;
+
+        return block;
     }
 
     spawnMovingBlock() {
         const topBlock = this.stackBlocks[this.stackBlocks.length - 1];
 
-        this.movingBlock = this.createBlock(centerX, topBlock.y - this.blockSpacing, topBlock.displayWidth);
+        this.movingBlock = this.createBlock(centerX, topBlock.y - this.blockSpacing, this.getBlockWidth(topBlock));
 
         if (this.isTutorialMode) {
             this.updateTutorialHighlight();
@@ -346,7 +363,7 @@ export default class gameScene extends Phaser.Scene {
 
 
     addPointsForHit(baseBlock, overlapData) {
-        const accuracy = overlapData.overlapWidth / baseBlock.displayWidth;
+        const accuracy = overlapData.overlapWidth / this.getBlockWidth(baseBlock);
         const sizeRatio = overlapData.overlapWidth / this.baseBlockWidth;
 
         let tierPoints = 0;
@@ -380,7 +397,7 @@ export default class gameScene extends Phaser.Scene {
         const overlapLeft = Math.max(baseLeft, movingLeft);
         const overlapRight = Math.min(baseRight, movingRight);
         const overlapWidth = overlapRight - overlapLeft;
-        const cutWidth = movingBlock.displayWidth - overlapWidth;
+        const cutWidth = this.getBlockWidth(movingBlock) - overlapWidth;
         const overlapCenterX = overlapLeft + (overlapWidth / 2);
 
         let cutCenterX = movingBlock.x;
@@ -429,11 +446,15 @@ export default class gameScene extends Phaser.Scene {
     }
 
     getBlockLeft(block) {
-        return block.x - (block.displayWidth / 2);
+        return block.x - (this.getBlockWidth(block) / 2);
     }
 
     getBlockRight(block) {
-        return block.x + (block.displayWidth / 2);
+        return block.x + (this.getBlockWidth(block) / 2);
+    }
+
+    getBlockWidth(block) {
+        return block.logicalWidth || block.displayWidth;
     }
 
     createFallingPiece(overlapData, textureKey) {
@@ -504,11 +525,11 @@ export default class gameScene extends Phaser.Scene {
             this.tutorialHighlight = this.add.rectangle(
                 this.movingBlock.x,
                 this.movingBlock.y,
-                this.movingBlock.displayWidth + 6,
-                this.blockHeight - 40
+                this.getBlockWidth(this.movingBlock) + 30,
+                this.blockHeight + 10
             )
                 .setFillStyle(0x000000, 0)
-                .setStrokeStyle(4, 0xFFD700, 1)
+                .setStrokeStyle(8, 0xFFD700, 1)
                 .setDepth(12);
 
             this.tutorialHighLightTween = this.tweens.add({
@@ -523,8 +544,8 @@ export default class gameScene extends Phaser.Scene {
 
         this.tutorialHighlight
             .setPosition(this.movingBlock.x, this.movingBlock.y)
-            .setSize(this.movingBlock.displayWidth + 6, this.blockHeight - 40)
-            .setDisplaySize(this.movingBlock.displayWidth + 6, this.blockHeight - 40)
+            .setSize(this.getBlockWidth(this.movingBlock) + 30, this.blockHeight + 10)
+            .setDisplaySize(this.getBlockWidth(this.movingBlock) + 30, this.blockHeight + 10)
             .setVisible(true);
      }
 
@@ -599,7 +620,7 @@ export default class gameScene extends Phaser.Scene {
 
         this.movingBlock.x += this.blockSpeed * (delta / 1000);
 
-        const halfBlockWidth = this.movingBlock.displayWidth / 2;
+        const halfBlockWidth = this.getBlockWidth(this.movingBlock) / 2;
         const minX = this.movementMargin + halfBlockWidth;
         const maxX = width - this.movementMargin - halfBlockWidth;
 

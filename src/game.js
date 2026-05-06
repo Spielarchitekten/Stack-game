@@ -10,7 +10,7 @@ var config = {
         width: width,
         height: height
     },
-    backgroundColor: '#000000',
+    backgroundColor: '#111827',
     scene: [levelScene],
     physics: {
         default: 'matter',
