@@ -45,6 +45,10 @@ export default class gameScene extends Phaser.Scene {
         this.tutorialSteps = [];
         this.scrollTween = null;
         this.isScrolling = false;
+        this.connectedGamepad = null;
+        this.gamepadAWasDown = false;
+        this.gamepadYWasDown = false;
+        this.retryButton = null;
     }
 
     preload() {
@@ -78,10 +82,82 @@ export default class gameScene extends Phaser.Scene {
             this.spaceKeyDown = false;
         });
 
+        this.setupGamepadSupport();
+
         this.createStartButton();
         this.createTutorialButton();
     }
 
+    setupGamepadSupport() {
+        if (!this.input.gamepad) {
+            return;
+        }
+
+        this.input.gamepad.on("connected", (pad) => {
+            this.connectedGamepad = pad;
+            this.gamepadAWasDown = false;
+            this.gamepadYWasDown = false;
+        });
+
+        this.input.gamepad.on("disconnected", (pad) => {
+            if (this.connectedGamepad && pad.index === this.connectedGamepad.index) {
+                this.connectedGamepad = null;
+                this.gamepadAWasDown = false;
+                this.gamepadYWasDown = false;
+            }
+        });
+    }
+
+    handlePrimaryAction() {
+        if (this.retryButton) {
+            this.scene.restart();
+            return;
+        }
+
+        if (!this.gameStarted) {
+            this.startGame();
+            return;
+        }
+
+        this.stopMovingBlock();
+    }
+
+    handleSecondaryAction() {
+        if (!this.gameStarted && this.tutorialButton) {
+            this.startGame(true);
+        }
+    }
+
+    pollGamepadInput() {
+        if (!this.input.gamepad) {
+            return;
+        }
+
+        if (!this.connectedGamepad) {
+            this.connectedGamepad = this.input.gamepad.pads.find ((pad) => pad && pad.connected) || null;
+            if (!this.connectedGamepad) {
+                return;
+            }
+        }
+
+        const aButton = this.connectedGamepad.buttons[0];
+        const yButton = this.connectedGamepad.buttons[3];
+
+        const isAPressed = !!aButton && (aButton.pressed || aButton.value > 0.5);
+        const isYPressed = !!yButton && (yButton.pressed || yButton.value > 0.5);
+
+        if (isAPressed && !this.gamepadAWasDown) {
+            this.handlePrimaryAction();
+        }
+
+        if(isYPressed && !this.gamepadYWasDown) {
+            this.handleSecondaryAction();
+        }
+
+        this.gamepadAWasDown = isAPressed;
+        this.gamepadYWasDown = isYPressed;
+    }
+            
     stopMovingBlock() {
         if (!this.gameStarted || !this.isBlockMoving || !this.movingBlock) {
             return;
@@ -594,7 +670,7 @@ export default class gameScene extends Phaser.Scene {
             color: "#ffdd57",
         }).setOrigin(0.5).setDepth(10);
 
-        const retryButton = this.add.rectangle(centerX, centerY + 70, 260, 80, 0xD7AF48)
+        this.retryButton = this.add.rectangle(centerX, centerY + 70, 260, 80, 0xD7AF48)
             .setStrokeStyle(3, 0x9f7e28, 1)
             .setDepth(10)
             .disableInteractive();
@@ -606,16 +682,20 @@ export default class gameScene extends Phaser.Scene {
             fontStyle: "bold",
         }).setOrigin(0.5).setDepth(11);
 
-        retryButton.on("pointerover", () => retryButton.setFillStyle(0xe5c36a));
-        retryButton.on("pointerout", () => retryButton.setFillStyle(0xD7AF48));
-        retryButton.on("pointerup", () => this.scene.restart());
+        this.retryButton.on("pointerover", () => this.retryButton.setFillStyle(0xe5c36a));
+        this.retryButton.on("pointerout", () => this.retryButton.setFillStyle(0xD7AF48));
+        this.retryButton.on("pointerup", () => this.scene.restart());
 
         this.time.delayedCall(400, () => {
-            retryButton.setInteractive({ useHandCursor: true });
+            if (this.retryButton) {
+                this.retryButton.setInteractive({ useHandCursor: true });
+            }
         });
     }
 
     update(time, delta) {
+        this.pollGamepadInput();
+        
         if (!this.isBlockMoving || !this.movingBlock) {
             return;
         }

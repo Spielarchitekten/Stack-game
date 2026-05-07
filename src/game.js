@@ -11,6 +11,9 @@ var config = {
         height: height
     },
     backgroundColor: '#111827',
+    input: {
+        gamepad: true,
+    },
     scene: [levelScene],
     physics: {
         default: 'matter',
