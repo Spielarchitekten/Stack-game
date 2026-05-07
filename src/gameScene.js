@@ -49,6 +49,7 @@ export default class gameScene extends Phaser.Scene {
         this.gamepadAWasDown = false;
         this.gamepadYWasDown = false;
         this.retryButton = null;
+        this.bubbles = [];
     }
 
     preload() {
@@ -65,6 +66,7 @@ export default class gameScene extends Phaser.Scene {
 
         //this.add.image(centerX, centerY, "gameBG").setDisplaySize(width, height);
         this.add.rectangle(centerX, centerY, width, height, 0xEFE3CF);
+        this.createBubbles();
         this.scoreText = this.add.text(40, 40, "Punkte: 0", {
             fontSize: "36px",
             color: "#111827",
@@ -86,6 +88,25 @@ export default class gameScene extends Phaser.Scene {
 
         this.createStartButton();
         this.createTutorialButton();
+    }
+
+    createBubbles() {
+        this.bubbles = [];
+        for (let i = 0; i < 200; i++) {
+            const r = Phaser.Math.Between(8, 28);
+            const g = this.add.graphics({ x: Phaser.Math.Between(0, width), y: Phaser.Math.Between(0, height) });
+            g.lineStyle(2, 0xaaaaaa, 0.35);
+            g.fillStyle(0xffffff, 0.08);
+            g.beginPath();
+            g.arc(0, 0, r, 0, Math.PI * 2);
+            g.closePath();
+            g.fillPath();
+            g.strokePath();
+            g.setDepth(0);
+            g.speed = Phaser.Math.FloatBetween(30, 90);
+            g.radius = r;
+            this.bubbles.push(g);
+        }
     }
 
     setupGamepadSupport() {
@@ -134,7 +155,8 @@ export default class gameScene extends Phaser.Scene {
         }
 
         if (!this.connectedGamepad) {
-            this.connectedGamepad = this.input.gamepad.pads.find ((pad) => pad && pad.connected) || null;
+            const pads = this.input.gamepad.pads || [];
+            this.connectedGamepad = pads.find((pad) => pad && pad.connected) || null;
             if (!this.connectedGamepad) {
                 return;
             }
@@ -660,24 +682,24 @@ export default class gameScene extends Phaser.Scene {
 
         this.add.text(centerX, centerY - 120, "Spiel vorbei", {
             fontFamily: "Cinzel Decorative",
-            fontSize: "48px",
+            fontSize: "56px",
             color: "#ffffff",
         }).setOrigin(0.5).setDepth(10);
 
         this.add.text(centerX, centerY - 40, "Endpunktzahl: " + this.score, {
             fontFamily: "Cinzel Decorative",
-            fontSize: "34px",
+            fontSize: "38px",
             color: "#ffdd57",
         }).setOrigin(0.5).setDepth(10);
 
-        this.retryButton = this.add.rectangle(centerX, centerY + 70, 260, 80, 0xD7AF48)
+        this.retryButton = this.add.rectangle(centerX, centerY + 70, 290, 110, 0xD7AF48)
             .setStrokeStyle(3, 0x9f7e28, 1)
             .setDepth(10)
             .disableInteractive();
 
         this.add.text(centerX, centerY + 70, "NOCHMAL", {
             fontFamily: "Cinzel Decorative",
-            fontSize: "28px",
+            fontSize: "38px",
             color: "#ffffff",
             fontStyle: "bold",
         }).setOrigin(0.5).setDepth(11);
@@ -695,6 +717,15 @@ export default class gameScene extends Phaser.Scene {
 
     update(time, delta) {
         this.pollGamepadInput();
+
+        for (let i = 0; i < this.bubbles.length; i++) {
+            const b = this.bubbles[i];
+            b.y -= b.speed * (delta / 1000);
+            if (b.y < -b.radius) {
+                b.y = height + b.radius;
+                b.x = Phaser.Math.Between(0, width);
+            }
+        }
         
         if (!this.isBlockMoving || !this.movingBlock) {
             return;
