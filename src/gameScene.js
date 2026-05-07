@@ -19,12 +19,12 @@ export default class gameScene extends Phaser.Scene {
         this.stackBlocks = [];
         this.blockSpacing = 0;
         this.blockSpacingFactor = 1;
-        this.baseBlockWidth = 450;
-        this.blockHeight = 100;
+        this.baseBlockWidth = Math.round(width * 0.5);
+        this.blockHeight = Math.round(width * 0.13);
         // this.blockColor = 0xDB7093;
         // this.blockBorderColor = 0x3a2230;
         // this.blockBorderWidth = 3;
-        this.movementMargin = 250;
+        this.movementMargin = Math.round(width * 0.03);
         this.score = 0;
         this.scoreText = null;
         this.movingBlock = null;
@@ -64,6 +64,7 @@ export default class gameScene extends Phaser.Scene {
         this.scoreText = this.add.text(40, 40, "Punkte: 0", {
             fontSize: "36px",
             color: "#111827",
+            fontStyle: "bold",
         }).setDepth(10).setVisible(false);
 
         this.input.on("pointerdown", this.stopMovingBlock, this);
@@ -146,13 +147,13 @@ export default class gameScene extends Phaser.Scene {
         this.startOverlay = this.add.rectangle(centerX, centerY, width, height, 0x000000, 0.35)
             .setDepth(20);
 
-        this.startButton = this.add.rectangle(centerX, centerY, 260, 90, 0xD7AF48)
+        this.startButton = this.add.rectangle(centerX, centerY - 50, 300, 120, 0xD7AF48)
             .setStrokeStyle(3, 0x9f7e28, 1)
             .setDepth(21)
             .setInteractive({ useHandCursor: true });
 
-        this.startLabel = this.add.text(centerX, centerY, "STARTEN", {
-            fontSize: "36px",
+        this.startLabel = this.add.text(centerX, centerY - 50, "STARTEN", {
+            fontSize: "40px",
             color: "#ffffff",
             fontStyle: "bold",
         }).setOrigin(0.5).setDepth(22);
@@ -171,16 +172,16 @@ export default class gameScene extends Phaser.Scene {
     }
 
     createTutorialButton() {
-        const offsetY = 120;
+        const offsetY = 170;
         const tutorialY = this.startButton.y + offsetY;     
 
-        this.tutorialButton = this.add.rectangle(centerX, tutorialY, 260, 80, 0xD7AF48)
+        this.tutorialButton = this.add.rectangle(centerX, tutorialY, 300, 120, 0xD7AF48)
             .setStrokeStyle(3, 0x9f7e28, 1)
             .setDepth(21)
             .setInteractive({ useHandCursor: true });
 
         this.tutorialLabel = this.add.text(centerX, tutorialY, "ANLEITUNG", {
-            fontSize: "32px",
+            fontSize: "40px",
             color: "#ffffff",
             fontStyle: "bold",
         }).setOrigin(0.5).setDepth(22);
@@ -478,12 +479,13 @@ export default class gameScene extends Phaser.Scene {
     createTutorialUI() {
         this.clearTutorialUI();
 
-        this.tutorialPanel = this.add.rectangle(centerX, 150, width - 120, 120, 0x000000, 0.55)
+        this.tutorialPanel = this.add.rectangle(centerX, 150, width - 120, 140, 0x000000, 0.55)
             .setStrokeStyle(2, 0xFFD700, 1)
             .setDepth(30);
 
         this.tutorialText = this.add.text(centerX, 150, "", {
-            fontSize: "26px",
+            fontSize: "28px",
+            fontStyle: "bold",
             color: "#ffffff",
             align: "center",
             lineSpacing: 8,
