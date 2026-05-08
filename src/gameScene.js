@@ -48,6 +48,12 @@ export default class gameScene extends Phaser.Scene {
         this.connectedGamepad = null;
         this.gamepadAWasDown = false;
         this.gamepadYWasDown = false;
+        this.gamepadARestState = null;
+        this.gamepadYRestState = null;
+        this.primaryButtonIndex = null;
+        this.secondaryButtonIndex = null;
+        this.gamepadButtonWasDown = [];
+        this.gamepadBaselineCaptured = false;
         this.retryButton = null;
         this.bubbles = [];
     }
@@ -114,10 +120,18 @@ export default class gameScene extends Phaser.Scene {
             return;
         }
 
+        this.input.gamepad.start();
+
         this.input.gamepad.on("connected", (pad) => {
             this.connectedGamepad = pad;
             this.gamepadAWasDown = false;
             this.gamepadYWasDown = false;
+            this.gamepadARestState = null;
+            this.gamepadYRestState = null;
+            this.primaryButtonIndex = null;
+            this.secondaryButtonIndex = null;
+            this.gamepadButtonWasDown = [];
+            this.gamepadBaselineCaptured = false;
         });
 
         this.input.gamepad.on("disconnected", (pad) => {
@@ -125,6 +139,12 @@ export default class gameScene extends Phaser.Scene {
                 this.connectedGamepad = null;
                 this.gamepadAWasDown = false;
                 this.gamepadYWasDown = false;
+                this.gamepadARestState = null;
+                this.gamepadYRestState = null;
+                this.primaryButtonIndex = null;
+                this.secondaryButtonIndex = null;
+                this.gamepadButtonWasDown = [];
+                this.gamepadBaselineCaptured = false;
             }
         });
     }
@@ -150,23 +170,92 @@ export default class gameScene extends Phaser.Scene {
     }
 
     pollGamepadInput() {
-        if (!this.input.gamepad) {
-            return;
-        }
-
         if (!this.connectedGamepad) {
-            const pads = this.input.gamepad.pads || [];
-            this.connectedGamepad = pads.find((pad) => pad && pad.connected) || null;
+            const phaserPads = (this.input.gamepad && this.input.gamepad.pads) || [];
+            const nativePads = navigator.getGamepads ? Array.from(navigator.getGamepads()) : [];
+            const allPads = [...phaserPads, ...nativePads];
+            this.connectedGamepad = allPads.find((pad) => pad && pad.connected) || null;
             if (!this.connectedGamepad) {
                 return;
             }
+            this.gamepadBaselineCaptured = false;
         }
 
-        const aButton = this.connectedGamepad.buttons[0];
-        const yButton = this.connectedGamepad.buttons[3];
+        const nativePads = navigator.getGamepads ? Array.from(navigator.getGamepads()) : [];
+        let livePad = null;
 
-        const isAPressed = !!aButton && (aButton.pressed || aButton.value > 0.5);
-        const isYPressed = !!yButton && (yButton.pressed || yButton.value > 0.5);
+        if (this.connectedGamepad && typeof this.connectedGamepad.index === "number") {
+            livePad = nativePads[this.connectedGamepad.index] || null;
+        }
+
+        if (!livePad && this.connectedGamepad) {
+            livePad = nativePads.find((pad) => pad && pad.connected && pad.id === this.connectedGamepad.id) || null;
+        }
+
+        if (livePad) {
+            this.connectedGamepad = livePad;
+        }
+
+        if (!this.connectedGamepad.connected) {
+            this.connectedGamepad = null;
+            return;
+        }
+
+        const buttons = this.connectedGamepad.buttons || [];
+        const pressedStates = buttons.map((button) => !!button && (button.pressed || button.value > 0.5));
+
+         if (!this.gamepadBaselineCaptured) {
+            this.gamepadButtonWasDown = pressedStates.slice();
+            this.gamepadBaselineCaptured = true;
+            return;
+        }
+        
+        const changedIndices = [];
+        for (let i = 0; i < pressedStates.length; i++) {
+            const isPressed = !!pressedStates[i];
+            const wasPressed = !!this.gamepadButtonWasDown[i];
+
+            if (isPressed !== wasPressed) {
+                changedIndices.push(i);
+            }
+        }
+
+        if (this.primaryButtonIndex === null && changedIndices.length > 0) {
+            this.primaryButtonIndex = changedIndices[0];
+            this.gamepadARestState = null;
+        }
+
+        if (this.secondaryButtonIndex === null && changedIndices.length > 0) {
+            const secondaryCandidate = changedIndices.find((index) => index !== this.primaryButtonIndex);
+            if (secondaryCandidate !== undefined) {
+                this.secondaryButtonIndex = secondaryCandidate;
+                this.gamepadYRestState = null;
+            }
+        }
+
+        const isAPressedRaw = this.primaryButtonIndex !== null ? !!pressedStates[this.primaryButtonIndex] : false;
+        const isYPressedRaw = this.secondaryButtonIndex !== null ? !!pressedStates[this.secondaryButtonIndex] : false;
+
+        if (this.gamepadARestState === null) {
+            this.gamepadARestState = isAPressedRaw;
+        }
+
+        if (this.gamepadYRestState === null) {
+            this.gamepadYRestState = isYPressedRaw;
+        }
+
+        const isAPressed = isAPressedRaw !== this.gamepadARestState;
+        const isYPressed = isYPressedRaw !== this.gamepadYRestState;
+
+        const isOnStartMenu = !this.gameStarted && !this.retryButton;
+        const isMappingIncomplete = this.primaryButtonIndex === null || this.secondaryButtonIndex === null;
+
+        if (isOnStartMenu && isMappingIncomplete) {
+            this.gamepadAWasDown = isAPressed;
+            this.gamepadYWasDown = isYPressed;
+            this.gamepadButtonWasDown = pressedStates;
+            return;
+        }
 
         if (isAPressed && !this.gamepadAWasDown) {
             this.handlePrimaryAction();
@@ -178,6 +267,7 @@ export default class gameScene extends Phaser.Scene {
 
         this.gamepadAWasDown = isAPressed;
         this.gamepadYWasDown = isYPressed;
+        this.gamepadButtonWasDown = pressedStates;
     }
             
     stopMovingBlock() {
