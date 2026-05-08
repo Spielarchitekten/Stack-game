@@ -9,7 +9,7 @@ export default class gameScene extends Phaser.Scene {
         this.gameStarted = false;
 
         this.baseSpeed = 150;
-        this.speedStep = 30;
+        this.speedStep = 10;
         this.maxSpeed = 600;
         this.blockSpeed = this.baseSpeed;
         this.placedBlocks = 0;
@@ -101,11 +101,20 @@ export default class gameScene extends Phaser.Scene {
                 this.gamepad.on('down', (index, value, button) => {
                     if (index == buttonConfig.res1) {
                         console.log ("BTN1");
+                        if (!this.gameStarted && !this.retryButton) {
+                            this.startGame(true);
+                        } else if (this.retryButton) {
+                            this.scene.restart();
+                        }
                     }
 
                     if (index == buttonConfig.res2) {
                         console.log ("BTN2");
-                        this.stopMovingBlock();
+                        if (!this.gameStarted && !this.retryButton) {
+                            this.startGame();
+                        } else {
+                            this.stopMovingBlock();
+                        }
                     }
                 });
             }
