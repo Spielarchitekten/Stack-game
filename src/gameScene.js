@@ -41,19 +41,9 @@ export default class gameScene extends Phaser.Scene {
         this.tutorialText = null;
         this.tutorialPanel = null;
         this.tutorialHighlight = null;
-        this.tutorialHighlightTween = null;
+        this.tutorialHighLightTween = null;
         this.tutorialSteps = [];
         this.scrollTween = null;
-        this.isScrolling = false;
-        this.connectedGamepad = null;
-        this.gamepadAWasDown = false;
-        this.gamepadYWasDown = false;
-        this.gamepadARestState = null;
-        this.gamepadYRestState = null;
-        this.primaryButtonIndex = null;
-        this.secondaryButtonIndex = null;
-        this.gamepadButtonWasDown = [];
-        this.gamepadBaselineCaptured = false;
         this.retryButton = null;
         this.bubbles = [];
         this.gamepad = null;
@@ -91,14 +81,11 @@ export default class gameScene extends Phaser.Scene {
             this.spaceKeyDown = false;
         });
 
-        // this.setupGamepadSupport();
-
-
         setTimeout( ()=> {
             this.gamepad = this.input.gamepad.getPad(0);
             console.log(this.gamepad)
             if (this.gamepad != undefined) {
-                this.gamepad.on('down', (index, value, button) => {
+                this.gamepad.on('down', (index) => {
                     if (index == buttonConfig.res1) {
                         console.log ("BTN1");
                         if (!this.gameStarted && !this.retryButton) {
@@ -141,164 +128,8 @@ export default class gameScene extends Phaser.Scene {
             g.radius = r;
             this.bubbles.push(g);
         }
-    }
-
-    setupGamepadSupport() {
-        if (!this.input.gamepad) {
-            return;
-        }
-
-        this.input.gamepad.start();
-
-        this.input.gamepad.on("connected", (pad) => {
-            this.connectedGamepad = pad;
-            this.gamepadAWasDown = false;
-            this.gamepadYWasDown = false;
-            this.gamepadARestState = null;
-            this.gamepadYRestState = null;
-            this.primaryButtonIndex = null;
-            this.secondaryButtonIndex = null;
-            this.gamepadButtonWasDown = [];
-            this.gamepadBaselineCaptured = false;
-        });
-
-        this.input.gamepad.on("disconnected", (pad) => {
-            if (this.connectedGamepad && pad.index === this.connectedGamepad.index) {
-                this.connectedGamepad = null;
-                this.gamepadAWasDown = false;
-                this.gamepadYWasDown = false;
-                this.gamepadARestState = null;
-                this.gamepadYRestState = null;
-                this.primaryButtonIndex = null;
-                this.secondaryButtonIndex = null;
-                this.gamepadButtonWasDown = [];
-                this.gamepadBaselineCaptured = false;
-            }
-        });
-    }
-
-    handlePrimaryAction() {
-        if (this.retryButton) {
-            this.scene.restart();
-            return;
-        }
-
-        if (!this.gameStarted) {
-            this.startGame();
-            return;
-        }
-
-        this.stopMovingBlock();
-    }
-
-    handleSecondaryAction() {
-        if (!this.gameStarted && this.tutorialButton) {
-            this.startGame(true);
-        }
-    }
-
-    pollGamepadInput() {
-        if (!this.connectedGamepad) {
-            const phaserPads = (this.input.gamepad && this.input.gamepad.pads) || [];
-            const nativePads = navigator.getGamepads ? Array.from(navigator.getGamepads()) : [];
-            const allPads = [...phaserPads, ...nativePads];
-            this.connectedGamepad = allPads.find((pad) => pad && pad.connected) || null;
-            if (!this.connectedGamepad) {
-                return;
-            }
-            this.gamepadBaselineCaptured = false;
-        }
-
-        const nativePads = navigator.getGamepads ? Array.from(navigator.getGamepads()) : [];
-        let livePad = null;
-
-        if (this.connectedGamepad && typeof this.connectedGamepad.index === "number") {
-            livePad = nativePads[this.connectedGamepad.index] || null;
-        }
-
-        if (!livePad && this.connectedGamepad) {
-            livePad = nativePads.find((pad) => pad && pad.connected && pad.id === this.connectedGamepad.id) || null;
-        }
-
-        if (livePad) {
-            this.connectedGamepad = livePad;
-        }
-
-        if (!this.connectedGamepad.connected) {
-            this.connectedGamepad = null;
-            return;
-        }
-
-        const buttons = this.connectedGamepad.buttons || [];
-        const pressedStates = buttons.map((button) => !!button && (button.pressed || button.value > 0.5));
-
-         if (!this.gamepadBaselineCaptured) {
-            this.gamepadButtonWasDown = pressedStates.slice();
-            this.gamepadBaselineCaptured = true;
-            return;
-        }
-        
-        const changedIndices = [];
-
-        for (let i = 0; i < pressedStates.length; i++) {
-            const isPressed = !!pressedStates[i];
-            const wasPressed = !!this.gamepadButtonWasDown[i];
-
-            if (isPressed !== wasPressed) {
-                changedIndices.push(i);
-            }
-        }
-
-        if (this.primaryButtonIndex === null && changedIndices.length > 0) {
-            this.primaryButtonIndex = changedIndices[0];
-            this.gamepadARestState = null;
-        }
-
-        if (this.secondaryButtonIndex === null && changedIndices.length > 0) {
-            const secondaryCandidate = changedIndices.find((index) => index !== this.primaryButtonIndex);
-            if (secondaryCandidate !== undefined) {
-                this.secondaryButtonIndex = secondaryCandidate;
-                this.gamepadYRestState = null;
-            }
-        }
-
-        const isAPressedRaw = this.primaryButtonIndex !== null ? !!pressedStates[this.primaryButtonIndex] : false;
-        const isYPressedRaw = this.secondaryButtonIndex !== null ? !!pressedStates[this.secondaryButtonIndex] : false;
-
-        if (this.gamepadARestState === null) {
-            this.gamepadARestState = isAPressedRaw;
-        }
-
-        if (this.gamepadYRestState === null) {
-            this.gamepadYRestState = isYPressedRaw;
-        }
-
-        const isAPressed = isAPressedRaw !== this.gamepadARestState;
-        const isYPressed = isYPressedRaw !== this.gamepadYRestState;
-
-        const isOnStartMenu = !this.gameStarted && !this.retryButton;
-        const isMappingIncomplete = this.primaryButtonIndex === null || this.secondaryButtonIndex === null;
-
-        if (isOnStartMenu && isMappingIncomplete) {
-            this.gamepadAWasDown = isAPressed;
-            this.gamepadYWasDown = isYPressed;
-            this.gamepadButtonWasDown = pressedStates;
-            return;
-        }
-
-        if (isAPressed && !this.gamepadAWasDown) {
-            this.handlePrimaryAction();
-        }
-
-        if(isYPressed && !this.gamepadYWasDown) {
-            this.handleSecondaryAction();
-        }
-
-        this.gamepadAWasDown = isAPressed;
-        this.gamepadYWasDown = isYPressed;
-        this.gamepadButtonWasDown = pressedStates;
-    }
-            
+    }   
+    
     stopMovingBlock() {
         if (!this.gameStarted || !this.isBlockMoving || !this.movingBlock) {
             return;
@@ -529,14 +360,12 @@ export default class gameScene extends Phaser.Scene {
 
         const targets = [...this.stackBlocks, this.movingBlock];
 
-        this.isScrolling = true;
         this.scrollTween = this.tweens.add({
             targets,
             y: "+=" + this.blockSpacing,
             duration: 150,
             ease: "Linear",
             onComplete: () => {
-                this.isScrolling = false;
                 this.scrollTween = null;
             },
         });
@@ -839,9 +668,7 @@ export default class gameScene extends Phaser.Scene {
         });
     }
 
-    update(time, delta) {
-        //this.pollGamepadInput();
-
+    update(_, delta) {
         for (let i = 0; i < this.bubbles.length; i++) {
             const b = this.bubbles[i];
             b.y -= b.speed * (delta / 1000);
