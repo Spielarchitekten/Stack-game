@@ -11,7 +11,9 @@ const gameConfig = {
   devMode          : true,
   devModeOptions   : {disableConsoleLog :  false, showMouseCoords: false}, //
   keyboardActive   : false,
-  maxParticles :      10000
+  maxParticles     : 10000,
+  useRandomSpeedFactor: true,
+  winScore         : 10000
 }
 
 var width      = gameConfig.screenResolution.width;

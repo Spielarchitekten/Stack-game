@@ -13,7 +13,7 @@ export default class gameScene extends Phaser.Scene {
         this.maxSpeed = 600;
         this.blockSpeed = this.baseSpeed;
         this.placedBlocks = 0;
-        this.speedUpEvery = 5;
+        this.speedUpEvery = 1;
         this.speedUpAt = this.speedUpEvery;
         this.isBlockMoving = false;
         this.stackBlocks = [];
@@ -310,8 +310,13 @@ export default class gameScene extends Phaser.Scene {
         this.advanceTutorialOnPlacement();
 
         if (this.placedBlocks >= this.speedUpAt) {
-            this.baseSpeed = Math.min(this.baseSpeed + this.speedStep, this.maxSpeed);
+
+            const randomFac = (gameConfig.useRandomSpeedFactor) ? Math.random() * 10 - 5 : 0 ;    
+            console.log ("randomFac: ", randomFac);    
+            this.baseSpeed = Math.min(this.baseSpeed + this.speedStep +  randomFac, this.maxSpeed);
             this.speedUpAt += this.speedUpEvery;
+
+
         }
 
         this.spawnMovingBlock();
