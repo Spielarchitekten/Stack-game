@@ -8,23 +8,23 @@ export default class gameScene extends Phaser.Scene {
     init() {
         this.gameStarted = false;
 
-        this.baseSpeed = 150;
-        this.speedStep = 10;
+        this.baseSpeed = stackConfig.baseSpeed;
+        this.speedStep = stackConfig.speedStep;
         this.maxSpeed = 600;
         this.blockSpeed = this.baseSpeed;
         this.placedBlocks = 0;
-        this.speedUpEvery = 1;
+        this.speedUpEvery = stackConfig.speedUpEvery;
         this.speedUpAt = this.speedUpEvery;
         this.isBlockMoving = false;
         this.stackBlocks = [];
         this.blockSpacing = 0;
-        this.blockSpacingFactor = 1;
-        this.baseBlockWidth = Math.round(width * 0.5);
-        this.blockHeight = Math.round(width * 0.13);
+        this.blockSpacingFactor = stackConfig.blockSpacingFactor;
+        this.baseBlockWidth = Math.round(width * stackConfig.baseBlockWidthRatio);
+        this.blockHeight = Math.round(width * stackConfig.blockHeightRatio);
         // this.blockColor = 0xDB7093;
         // this.blockBorderColor = 0x3a2230;
         // this.blockBorderWidth = 3;
-        this.movementMargin = Math.round(width * 0.03);
+        this.movementMargin = Math.round(width * stackConfig.movementMarginRatio);
         this.score = 0;
         this.scoreText = null;
         this.movingBlock = null;
@@ -42,7 +42,7 @@ export default class gameScene extends Phaser.Scene {
         this.tutorialPanel = null;
         this.tutorialHighlight = null;
         this.tutorialHighLightTween = null;
-        this.tutorialSteps = [];
+        this.tutorialSteps = stackConfig.tutorialSteps.slice();
         this.scrollTween = null;
         this.retryButton = null;
         this.bubbles = [];
@@ -255,11 +255,7 @@ export default class gameScene extends Phaser.Scene {
     startGame(startWithTutorial = false) {
         this.isTutorialMode = startWithTutorial;
         this.tutorialStepIndex = 0;
-        this.tutorialSteps = [
-            "📦  Schritt 1 von 3  —  Klicke oder druecke die LEERTASTE, um den Block abzusetzen.\nVersuche, ihn so mittig wie moeglich zu platzieren!",
-            "✂️  Schritt 2 von 3  —  Jeder Teil ohne Ueberlappung wird abgeschnitten.\nJe genauer du triffst, desto breiter bleibt dein naechster Block!",
-            "⚡  Schritt 3 von 3  —  Alle 5 Bloecke steigt die Geschwindigkeit.\nBleib konzentriert — viel Glueck!"
-        ]
+        this.tutorialSteps = stackConfig.tutorialSteps.slice();
         this.gameStarted = true;
         this.isBlockMoving = true;
         this.blockSpeed = this.baseSpeed;

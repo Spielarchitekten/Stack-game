@@ -16,6 +16,22 @@ const gameConfig = {
   winScore         : 10000
 }
 
+const stackConfig = {
+  baseSpeed: 150,
+  speedStep: 10,
+  maxSpeed: 600,
+  speedUpEvery: 1,
+  blockSpacingFactor: 1,
+  baseBlockWidthRatio: 0.5,
+  blockHeightRatio: 0.13,
+  movementMarginRatio: 0.03,
+  tutorialSteps: [
+    "📦  Schritt 1 von 3  —  Klicke oder druecke die LEERTASTE, um den Block abzusetzen.\nVersuche, ihn so mittig wie moeglich zu platzieren!",
+    "✂️  Schritt 2 von 3  —  Jeder Teil ohne Ueberlappung wird abgeschnitten.\nJe genauer du triffst, desto breiter bleibt dein naechster Block!",
+    "⚡  Schritt 3 von 3  —  Alle 5 Bloecke steigt die Geschwindigkeit.\nBleib konzentriert — viel Glueck!"
+  ]
+}
+ 
 var width      = gameConfig.screenResolution.width;
 var height     = gameConfig.screenResolution.height;
 var centerX    = width * 0.5;
