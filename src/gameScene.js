@@ -56,6 +56,7 @@ export default class gameScene extends Phaser.Scene {
         this.gamepadBaselineCaptured = false;
         this.retryButton = null;
         this.bubbles = [];
+        this.gamepad = null;
     }
 
     preload() {
@@ -90,7 +91,25 @@ export default class gameScene extends Phaser.Scene {
             this.spaceKeyDown = false;
         });
 
-        this.setupGamepadSupport();
+        // this.setupGamepadSupport();
+
+
+        setTimeout( ()=> {
+            this.gamepad = this.input.gamepad.getPad(0);
+            console.log(this.gamepad)
+            if (this.gamepad != undefined) {
+                this.gamepad.on('down', (index, value, button) => {
+                    if (index == buttonConfig.res1) {
+                        console.log ("BTN1");
+                    }
+
+                    if (index == buttonConfig.res2) {
+                        console.log ("BTN2");
+                        this.stopMovingBlock();
+                    }
+                });
+            }
+        }, 1000, this );
 
         this.createStartButton();
         this.createTutorialButton();
@@ -211,6 +230,7 @@ export default class gameScene extends Phaser.Scene {
         }
         
         const changedIndices = [];
+
         for (let i = 0; i < pressedStates.length; i++) {
             const isPressed = !!pressedStates[i];
             const wasPressed = !!this.gamepadButtonWasDown[i];
@@ -811,7 +831,7 @@ export default class gameScene extends Phaser.Scene {
     }
 
     update(time, delta) {
-        this.pollGamepadInput();
+        //this.pollGamepadInput();
 
         for (let i = 0; i < this.bubbles.length; i++) {
             const b = this.bubbles[i];
